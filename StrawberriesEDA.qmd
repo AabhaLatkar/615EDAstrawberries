@@ -821,7 +821,7 @@ dcomma <- function(c){
 
 ## To fine the location and value of the footnotes
 
-v <- strwb_survey$Value
+v <- as.numeric(strwb_survey$Value)
 
 
 ## find the footnote locations
@@ -887,10 +887,11 @@ strwb_survey_mkt <- strwb_survey |> filter(!((temp22 == "CHEMICAL") | (temp42 ==
 chem1 <-  drop_one_value_col(strwb_survey_chem)
 
 # chem1 |> kable(caption = "1-value columns dropped")
+           
 
-chem1 <- setdiff(colnames(strwb_survey_chem), chem1$col_name)
 
-strwb_survey_chem <- strwb_survey_chem |> select(all_of(chem1))
+
+
 
 ```
 
@@ -899,6 +900,21 @@ strwb_survey_chem <- strwb_survey_chem |> select(all_of(chem1))
 ```{r}
 
 mkt1 <- drop_one_value_col(strwb_survey_mkt)
+
+strwb_survey_mkt <- strwb_survey_mkt |> 
+  separate_wider_delim(  cols = `crop_type`,
+                         delim = ",",
+                         names = c("crop","type"),
+                         too_many = "merge",
+                         too_few = "align_start"
+                       )
+strwb_survey_mkt <- strwb_survey_mkt |> 
+  separate_wider_delim(  cols = `type`,
+                         delim = ",",
+                         names = c("typ","temp1"),
+                         too_many = "merge",
+                         too_few = "align_start"
+                       )
 
 # mkt1 |> kable(caption = "droping 1-value cols - mkt")
 
@@ -920,7 +936,14 @@ strwb_survey_chem<- strwb_survey_chem[, !(colnames(strwb_survey_chem) %in% c("te
 
 strwb_survey_chem<- strwb_survey_chem[, !(colnames(strwb_survey_chem) %in% c("temp4", "temp2"))]
 
-strwb_survey_mkt<- strwb_survey_mkt[, !(colnames(strwb_survey_mkt) %in% c("temp44", "temp23", "temp45", "temp43"))]
+strwb_survey_mkt<- strwb_survey_mkt[, !(colnames(strwb_survey_mkt) %in% c("temp44", "temp23", "temp45", "temp43", "temp1"))]
+
+library(readxl)
+chemical <- read_excel("chemicalnew - Copy.xlsx")
+harm_level <- chemical$harm_level
+library(dplyr)
+Che <- left_join(strwb_survey_chem, chemical, by = "Chem")
+
 ```
 #EDA
 
@@ -969,6 +992,22 @@ ggplot(filtered_data, aes(x = State)) +
   labs(title = "Dual Bar Chart", y = "Value", fill = "Legend") +
   scale_fill_manual(values = c("Fresh Market" = "blue", "Process Market" = "red"))+
   theme(axis.text.x = element_text( hjust = 1,size = 8))
+```
+```{r}
+library(ggplot2)
+library(dplyr)
+strwb_census <- strwb_census %>%
+  rename(Fresh = `Fresh Market`, Process = `Process Market`)
+plot3 <- strwb_census |> 
+  filter((Totals == PRODUCTION), (Fresh == PRODUCTION), (Process == PRODUCTION))|> select(c(Year, Value)) 
+           
+# Create a line graph
+g <- ggplot(data = plot3, aes(x = Year, y = TotalValue)) + geom_point
+  geom_line() +
+  labs(x = "Years", y = "Value") +
+  ggtitle("Production Over the Years")
+print(g)
+
 ```
 
 <p style="page-break-before: always"></p>
