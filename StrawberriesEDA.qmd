@@ -562,61 +562,6 @@ strwb_census$Value[is.na(strwb_census$Value)] <- 0
 <!-- These plots were in early versions of the classroom notes. -->
 <!-- In final versions of this document, they should be included in the EDA section. Note that the code will not run without editing. -->
 
-
-<!-- ## plots   -->
-
-```{r}
-#| label: plot 1
-#| echo: false
-#| eval: false
-
-plot1_data <- strawberry |> 
-  select(c(Year, State, Data Item, Value)) |> 
-  filter((Year == 2021) & (Category == "ORGANIC - OPERATIONS WITH SALES"))
-
-plot1_data$Value <- as.numeric(plot1_data$Value)
-
-plot1_data <- plot1_data |> arrange(desc(Value))
-
-ggplot(plot1_data, aes(x=reorder(State, -Value), y=Value)) + 
-  geom_bar(stat = "identity") + 
-  theme(axis.text.x=element_text(angle=45,hjust=1)) +
-  labs(x = "States", y = "Count",
-title ="Number of Organic Strawberry operations with Sales in 2021")
-
-
-```
-
-```{r}
-#| label: plot 2
-#| echo: false
-#| eval: false
-
-
-##
-plot2_data <- strawberry |> 
-  select(c(Year, State, Category, Item, Value)) |> 
-  filter((Year == 2021) & 
-           (Category == "ORGANIC - SALES") & 
-           (Item == "MEASURED IN $") & 
-           (Value != "(D)"))
-
-
-plot2_data$Value <- as.numeric(gsub(",", "", plot2_data$Value))
-
-plot2_data <- plot1_data |> arrange(desc(Value))
-
-ggplot(plot2_data, aes(x=reorder(State, -Value), y=Value)) + 
-  geom_bar(stat = "identity") + 
-  theme(axis.text.x=element_text(angle=45,hjust=1)) +
-  labs(x = "States", y = "Sales",
-title ="Organic Strawberry Sales ($) in 2021")
-
-
-```
-
-## EDA
-
 Once the data has been cleaned and organized, you must conduct your own EDA.  Be sure to include a discussion of your analysis of the chemical information, including citations for data and other information you have used.  Visualizations should play a key role in your analysis.  Plots should be labeled and captioned.
 
 <!-- ## chemicals -->
@@ -721,11 +666,9 @@ per_c <- unlist(per_c)
 
 strwb_survey <- strwb_survey |> 
   separate_wider_delim(  cols = `Data Item`,
-                         delim = ",",
+                         delim = "MEASURED IN",
                          names = c("temp1",
-                                 "temp2",
-                                 "temp3",
-                                 "temp4"),
+                                 "temp2"),
                          too_many = "error",
                          too_few = "align_start"
                        )
@@ -742,7 +685,6 @@ strwb_survey$crop_type <- str_trim(strwb_survey$crop_type, side = "both")
 
 strwb_survey$temp2 <- str_trim(strwb_survey$temp2, side = "both")
 
-strwb_survey$temp3 <- str_trim(strwb_survey$temp3, side = "both")
 
 # a <- strwb_survey |> distinct(temp1a)
 ## temp1a contains only 1 value -- STRAWBERRIES
@@ -940,50 +882,6 @@ strwb_survey_mkt <- strwb_survey |> filter(!((temp22 == "CHEMICAL") | (temp42 ==
 
 
 
-
-
-
-```{r}
-
-## Make a copy of temp2 named `Process Market`
-strwb_survey_mkt <- strwb_survey_mkt|> mutate(`Process Market` = temp2, .after = temp2)
-
-## remove `Process Market` cells beginning "MEASURED"
-strwb_survey_mkt$`Process Market` <-  strwb_survey_mkt$`Process Market` |> str_replace("^MEA.*", "")
-
-## substitute space for NA in `Process Market` column
-strwb_survey_mkt$`Process Market`[is.na(strwb_survey_mkt$`Process Market`)] <- ""
-
-## In temp2, remove cells that begin "PROCESSING"
-strwb_survey_mkt$temp2 <- strwb_survey_mkt$temp2 |> str_replace("^P.*", "")
-
-## In `Processing Market`, remove "PROCESSING - " from cells
-strwb_survey_mkt$`Process Market` <-  strwb_survey_mkt$`Process Market` |> str_replace("PROCESSING - ", "") 
-
-
-```
-
-
-
-
-
-<!-- Remove NA's from prop_acct, temp2, and temp3 -->
-
-```{r}
-
-## substitute a space for NA in prop_acct column
-strwb_survey_mkt$prop_acct[is.na(strwb_survey_mkt$prop_acct)] <- "" 
-
-## substitute a space for NA in temp2 column
-strwb_survey_mkt$temp2[is.na(strwb_survey_mkt$temp2)] <- "" 
-
-## substitute a space for NA in temp2 column
-strwb_survey_mkt$temp3[is.na(strwb_survey_mkt$temp3)] <- "" 
-
-```
-
-<!-- drop 1-value columns strawberry chems  -->
-
 ```{r}
 
 chem1 <-  drop_one_value_col(strwb_survey_chem)
@@ -996,8 +894,6 @@ strwb_survey_chem <- strwb_survey_chem |> select(all_of(chem1))
 
 ```
 
-
-<!-- mkt -->
 
 
 ```{r}
@@ -1012,75 +908,68 @@ mkt1 <- drop_one_value_col(strwb_survey_mkt)
 # Delete the "temp44" and "temp45" columns
  strwb_survey_chem<- strwb_survey_chem[, !(colnames(strwb_survey_chem) %in% c("temp44", "temp45", "temp23"))]
 strwb_survey_chem <- separate(strwb_survey_chem, "temp43", into = c("Pest", "Chemical"), sep=":")
-strwb_survey_chem <- separate(strwb_survey_chem, "temp43", into = c("Pest", "Chemical"), sep=":")
+strwb_survey_chem <- separate(strwb_survey_chem, "Chemical", into = c("Chem", "Number"), sep="=")
+
+strwb_survey_chem$Chem <- str_trim(strwb_survey_chem$Chem, side = "both")
+
+strwb_survey_chem$temp2 <- str_trim(strwb_survey_chem$Number, side = "both")
+
+strwb_survey_chem$Chem <- substr(strwb_survey_chem$Chem, 2, nchar(strwb_survey_chem$Chem))
+strwb_survey_chem$Number <- substr(strwb_survey_chem$Number, 1, nchar(strwb_survey_chem$Number) - 1)
+strwb_survey_chem<- strwb_survey_chem[, !(colnames(strwb_survey_chem) %in% c("temp42"))]
+
+strwb_survey_chem<- strwb_survey_chem[, !(colnames(strwb_survey_chem) %in% c("temp4", "temp2"))]
+
+strwb_survey_mkt<- strwb_survey_mkt[, !(colnames(strwb_survey_mkt) %in% c("temp44", "temp23", "temp45", "temp43"))]
 ```
+#EDA
+
+```{r}
+colnames(strawberry)[colnames(strawberry) == "Domain Category"] <- "Category"
+colnames(strawberry)[colnames(strawberry) == "Data Item"] <- "Item"
+
+plot1_data <- strawberry |> 
+  select(c(Year, State, Item, Value)) |> 
+  filter((Year == 2021))
+
+plot1_data$Value <- as.numeric(plot1_data$Value)
+
+plot1_data <- plot1_data |> arrange(desc(Value))
+
+ggplot(plot1_data, aes(x=reorder(State, -Value), y=Value)) + 
+  geom_bar(stat = "identity") + 
+  theme(axis.text.x=element_text(angle=45,hjust=1)) +
+  labs(x = "States", y = "Count",
+title ="Number of Organic Strawberry operations with Sales in 2021")
+
+plot2_data <- strawberry |> 
+  select(c(Year, State, Category, Item, Value)) |> 
+  filter((Year == 2019)) 
+           
+
+
+plot2_data$Value <- as.numeric(gsub(",", "", plot2_data$Value))
+
+plot2_data <- plot1_data |> arrange(desc(Value))
+
+ggplot(plot2_data, aes(x=reorder(State, -Value), y=Value)) + 
+  geom_bar(stat = "identity") + 
+  theme(axis.text.x=element_text(angle=45,hjust=1)) +
+  labs(x = "States", y = "Sales",
+title ="Organic Strawberry Sales ($) in 2021")
+
+filtered_data <- strwb_census %>%
+  filter(Fresh == "SALES" | Process == "SALES")
+
+# Create the dual bar chart
+ggplot(filtered_data, aes(x = State)) +
+  geom_bar(aes(y = Fresh, fill = "Fresh Market"), stat = "identity",
+            position = "Stack") +geom_bar(aes(y = Process, fill = "Process Market"), stat = "identity",
+            position = "Stack")
+  labs(title = "Dual Bar Chart", y = "Value", fill = "Legend") +
+  scale_fill_manual(values = c("Fresh Market" = "blue", "Process Market" = "red"))+
+  theme(axis.text.x = element_text( hjust = 1,size = 8))
+```
+
 <p style="page-break-before: always"></p>
-
-### These references have been left in the document to help while you are writing.  Cite those you use and drop the rest from the final document.
-
-
-
-[NASS help](https://quickstats.nass.usda.gov/tutorials)
-
-[Quick Stats Glossary](https://quickstats.nass.usda.gov/src/glossary.pdf)
-
-
-[Quick Stats Column Definitions](https://quickstats.nass.usda.gov/param_define)
-
-
-
-[stats by subject](https://www.nass.usda.gov/Statistics_by_Subject/index.php?sector=CROPS)
-
-
-
-for EPA number lookup [epa numbers](https://archive.epa.gov/pesticides/chemicalsearch/chemical/foia/web/html/128810.html)
-
-[Active Pesticide Product Registration Informational Listing](https://ordspub.epa.gov/ords/pesticides/f?p=APPRIL_PUBLIC:2::::::)
-
-
-pc number input
-[pesticide chemical search](https://ordspub.epa.gov/ords/pesticides/f?p=chemicalsearch:1)
-
-[toxic chemical dashboard](https://comptox.epa.gov/dashboard/)
-
-[ACToR – Aggregated Computational Toxicology Resource](https://cfpub.epa.gov/si/si_public_record_report.cfm?Lab=NCCT&dirEntryId=209598)
-
-[comptox dashboard](https://comptox.epa.gov/dashboard/chemical/details/DTXSID0020315)
-
-[pubChem](https://pubchem.ncbi.nlm.nih.gov/)
-
-The EPA PC (Pesticide Chemical) Code is a unique chemical code number assigned by the EPA to a particular pesticide active ingredient, inert ingredient or mixture of active ingredients.
-
-## Investigating toxic pesticides
-
-[start here with chem PC code](https://ordspub.epa.gov/ords/pesticides/f?p=chemicalsearch:1)
-
-[step 2](https://ordspub.epa.gov/ords/pesticides/f?p=113:1::::RP,17,1::) to get label (with warnings) for products using the chemical
-
-[International Chemical safety cards](https://www.ilo.org/dyn/icsc/showcard.home)
-
-
-
-
-[Pesticide Product and Label System](https://ordspub.epa.gov/ords/pesticides/f?p=113:1::::RP,17,1::)
-
-[Search by Chemical](https://ordspub.epa.gov/ords/pesticides/f?p=113:17::::::)
-
-[CompTox Chemicals Dashboard](https://comptox.epa.gov/dashboard/)
-
-[Active Pesticide Product Registration Informational Listing](https://ordspub.epa.gov/ords/pesticides/f?p=APPRIL_PUBLIC:2::::::)
-
-[OSHA chemical database](https://www.osha.gov/chemicaldata)
-
-[Pesticide Ingredients](http://npic.orst.edu/ingred/)
-
-[NPIC Product Research Online (NPRO)](http://npic.orst.edu/NPRO/)
-
-[Databases for Chemical Information](http://npic.orst.edu/ingred/cheminfo.html)
-
-[Pesticide Active Ingredients](http://npic.orst.edu/ingred/active.html)
-
-[TSCA Chemical Substance Inventory](https://www.epa.gov/tsca-inventory)
-
-[glyphosate](https://ordspub.epa.gov/ords/pesticides/f?p=CHEMICALSEARCH:3::::1,3,31,7,12,25:P3_XCHEMICAL_ID:2478)
 
